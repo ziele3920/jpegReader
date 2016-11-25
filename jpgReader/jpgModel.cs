@@ -55,6 +55,8 @@ namespace jpgReader
         public List<byte[]> imageSegments;
         public Queue<byte> scannedData;
         public string file;
+        public Queue<byte> headerData;
+        public Queue<byte> sampleData;
         public JpegModel() {
             app0 = new APP0();
             sof1 = new SOF1();
@@ -63,6 +65,8 @@ namespace jpgReader
             imageSegments = new List<byte[]>();
             comments = new List<byte[]>();
             scannedData = new Queue<byte>();
+            headerData = new Queue<byte>();
+            sampleData = new Queue<byte>();
         }
   
     }

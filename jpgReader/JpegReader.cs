@@ -18,8 +18,9 @@ namespace jpgReader
         int DHT = 0xffc4;
         int SOS = 0xffda;
         int EOI = 0xffd9;
-        int EOIls = 0xd9;
         int Comment = 0xfffe;
+        int EOIls = 0xd9;
+        int SOSls = 0xda;
         int markerMS = 0xff;
 
         public JpegModel ReadImage(Stream imageStream) {
@@ -64,24 +65,7 @@ namespace jpgReader
             jpegModel.comments.Add(reader.ReadBytes(segmentLength - 2));
         }
 
-        private void ReadScanSegment(BinaryReader reader, JpegModel jpegModel) {
-            int segmentLength = BitConverter.ToUInt16(reader.ReadBytes(2).Reverse().ToArray(), 0);
-            jpegModel.imageSegments.Add(reader.ReadBytes(segmentLength - 2));
-            byte[] buffer;
-            byte marker;
-            while((buffer = reader.ReadBytes(1)).Length > 0) {
-                if(buffer[0] == markerMS) {
-                    marker = reader.ReadByte();
-                    if (marker == EOIls)
-                        break;
-                    jpegModel.scannedData.Enqueue(buffer[0]);
-                    jpegModel.scannedData.Enqueue(marker);
-                    continue;
-                }
-                jpegModel.scannedData.Enqueue(buffer[0]);
-            }
 
-        }
 
         private void ReadDhtSegment(BinaryReader reader, JpegModel jpegModel) {
             int segmentLength = BitConverter.ToUInt16(reader.ReadBytes(2).Reverse().ToArray(), 0);
@@ -163,5 +147,68 @@ namespace jpgReader
                 throw new Exception(markerName + " marker not found.");
         }
 
+        public void FillipherData(BinaryReader oryginalReader, JpegModel jpegModel) {
+            jpegModel.headerData = GetHeaderData(oryginalReader);
+            jpegModel.sampleData = GetSampleData(oryginalReader);
+        }
+
+        private void ReadScanSegment(BinaryReader reader, JpegModel jpegModel) {
+            int segmentLength = BitConverter.ToUInt16(reader.ReadBytes(2).Reverse().ToArray(), 0);
+            jpegModel.imageSegments.Add(reader.ReadBytes(segmentLength - 2));
+            byte[] buffer;
+            byte marker;
+            while ((buffer = reader.ReadBytes(1)).Length > 0) {
+                if (buffer[0] == markerMS) {
+                    marker = reader.ReadByte();
+                    if (marker == EOIls)
+                        break;
+                    jpegModel.scannedData.Enqueue(buffer[0]);
+                    jpegModel.scannedData.Enqueue(marker);
+                    continue;
+                }
+                jpegModel.scannedData.Enqueue(buffer[0]);
+            }
+
+        }
+
+        private Queue<byte> GetSampleData(BinaryReader oryginalReader) {
+            Queue<byte> sampleData = new Queue<byte>();
+            byte[] buffer;
+            byte marker;
+            while ((buffer = oryginalReader.ReadBytes(1)).Length > 0) {
+                if (buffer[0] == markerMS) {
+                    marker = oryginalReader.ReadByte();
+                    if (marker == EOIls)
+                        break;
+                    sampleData.Enqueue(buffer[0]);
+                    sampleData.Enqueue(marker);
+                    continue;
+                }
+                sampleData.Enqueue(buffer[0]);
+            }
+            return sampleData;
+        }
+
+        private Queue<byte> GetHeaderData(BinaryReader oryginalReader) {
+            Queue<byte> headerData = new Queue<byte>();
+            byte[] buffer;
+            byte marker;
+            while ((buffer = oryginalReader.ReadBytes(1)).Length > 0) {
+                if (buffer[0] == markerMS) {
+                    marker = oryginalReader.ReadByte();
+                    headerData.Enqueue(buffer[0]);
+                    headerData.Enqueue(marker);
+                    if (marker == SOSls)
+                        break;
+                    continue;
+                }   
+                headerData.Enqueue(buffer[0]);
+            }
+            //headerData.Enqueue(oryginalReader.ReadByte());
+           // headerData.Enqueue(oryginalReader.ReadByte());
+           // headerData.Enqueue(oryginalReader.ReadByte());
+
+            return headerData;
+        }
     }
 }

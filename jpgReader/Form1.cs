@@ -30,6 +30,7 @@ namespace jpgReader
             OpenFileDialog openFileDialog1 = new OpenFileDialog();
             JpegModel jpegModel;
             JpegReader jpegReader = new JpegReader();
+            CryptoNetService cryptoService = new CryptoNetService();
 
             openFileDialog1.InitialDirectory = Environment.GetFolderPath(Environment.SpecialFolder.CommonPictures);
             openFileDialog1.Filter = "images (*.jpg)|*.jpg";
@@ -43,10 +44,11 @@ namespace jpgReader
                             // Insert code to read the stream here.
                             jpegModel = jpegReader.ReadImage(myStream);
                             jpegModel.file = (myStream as FileStream).Name;
-                            FFTService.FFTImageDataModel fftImageDataModel = FFTService.FFT(jpegModel);
+                           // FFTService.FFTImageDataModel fftImageDataModel = FFTService.FFT(jpegModel);
                             SetImageDetails(jpegModel);
                             ClearGraph();
-                            DrawGraph(fftImageDataModel);
+                           // DrawGraph(fftImageDataModel);
+                            cryptoService.Rsa(jpegModel);
                         }
                     }
                 }
