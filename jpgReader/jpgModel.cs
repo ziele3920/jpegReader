@@ -57,6 +57,10 @@ namespace jpgReader
         public string file;
         public Queue<byte> headerData;
         public Queue<byte> sampleData;
+        public List<byte> beforeQT1;
+        public List<byte> afterQT1;
+        public byte[] QT1;
+        public byte[] cryptedQT1;
         public JpegModel() {
             app0 = new APP0();
             sof1 = new SOF1();
@@ -67,6 +71,8 @@ namespace jpgReader
             scannedData = new Queue<byte>();
             headerData = new Queue<byte>();
             sampleData = new Queue<byte>();
+            beforeQT1 = new List<byte>();
+            afterQT1 = new List<byte>();
         }
   
     }

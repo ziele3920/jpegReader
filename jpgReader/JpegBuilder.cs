@@ -26,5 +26,17 @@ namespace jpgReader
             writter.Write((byte)0xd9);
             creatingFile.Close();
         }
+
+        public void BuildQTJpeg(JpegModel imageModel, string fileAppend) {
+            string path = imageModel.file;
+            path = path.Replace(".jpg", fileAppend + ".jpg");
+            if (File.Exists(path))
+                File.Delete(path);
+            FileStream creatingFile = File.Create(path);
+            BinaryWriter writter = new BinaryWriter(creatingFile);
+            writter.Write(imageModel.beforeQT1.ToArray());
+            writter.Write(imageModel.QT1);
+            writter.Write(imageModel.afterQT1.ToArray());
+        }
     }
 }

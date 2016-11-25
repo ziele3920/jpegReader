@@ -13,7 +13,7 @@ namespace jpgReader
         private RSAParameters pubKey;
 
         internal void Rsa(JpegModel jpegModel) {
-            RSA csp = new RSACryptoServiceProvider(512);
+            RSA csp = new RSACryptoServiceProvider(768);
             privKey = csp.ExportParameters(true);
             pubKey = csp.ExportParameters(false);
 
@@ -29,20 +29,22 @@ namespace jpgReader
             BinaryReader oryginalReader = new BinaryReader(oryginalImageStream);
             JpegReader jpgReader = new JpegReader();
             JpegBuilder builder = new JpegBuilder();
-            jpgReader.FillipherData(oryginalReader, jpegModel);
+            //jpgReader.FillipherData(oryginalReader, jpegModel);
+            jpgReader.ReadToQt(oryginalReader, jpegModel);
             int dataCount = jpegModel.sampleData.Count;
-            byte[] oryginalData = new byte[dataCount];
-            //for (int i = 0; i < dataCount; ++i)
-           //     oryginalData[i] = jpegModel.sampleData.Dequeue();
-           // var csp = new RSACryptoServiceProvider();
-           // csp.ImportParameters(pubKey);
+            byte[] oryginalData = jpegModel.quantizationTables[0];
+           // byte[] data = jpegModel.quantizationTables[0];
+           // for (int i = 0; i < 50; ++i)
+           //     oryginalData[i] = data[i];
+            var csp = new RSACryptoServiceProvider();
+            csp.ImportParameters(pubKey);
+            
 
-            //decrypt and strip pkcs#1.5 padding
-            //byte[] cryptedData = csp.Encrypt(oryginalData, false);
+            jpegModel.cryptedQT1 = csp.Encrypt(jpegModel.QT1, false);
             //int iMax = 27;
            // for(int i =0; i < iMax; ++i)
            //     jpegModel.sampleData.Enqueue(cryptedData[i]);
-            builder.BuildJpeg(jpegModel, "dupaczaba");
+            builder.BuildQTJpeg(jpegModel, "dupaczaba");
             return "";
         }
 

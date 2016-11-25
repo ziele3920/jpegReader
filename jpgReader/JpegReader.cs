@@ -22,6 +22,7 @@ namespace jpgReader
         int EOIls = 0xd9;
         int SOSls = 0xda;
         int markerMS = 0xff;
+        int QTls = 0xdb;
 
         public JpegModel ReadImage(Stream imageStream) {
             JpegModel jpegModel = new JpegModel();
@@ -152,6 +153,45 @@ namespace jpgReader
             jpegModel.sampleData = GetSampleData(oryginalReader);
         }
 
+        public void ReadToQt(BinaryReader oryginalReader, JpegModel jpegModel) {
+            jpegModel.beforeQT1 = GetBeforeQt(oryginalReader);
+            jpegModel.QT1 = oryginalReader.ReadBytes(64);
+            jpegModel.afterQT1 = GetAfterQtMarkAndLenghth(oryginalReader);
+        }
+
+        private List<byte> GetAfterQtMarkAndLenghth(BinaryReader oryginalReader) {
+            List<byte> data = new List<byte>();
+            byte[] buffer;
+            while ((buffer = oryginalReader.ReadBytes(1)).Length > 0)
+                data.Add(buffer[0]);
+            return data;
+
+        }
+    
+
+        private List<byte> GetBeforeQt(BinaryReader oryginalReader) {
+
+            List<byte> data = new List<byte>();
+            byte[] buffer;
+            byte marker;
+            while ((buffer = oryginalReader.ReadBytes(1)).Length > 0) {
+                if (buffer[0] == markerMS) {
+                    marker = oryginalReader.ReadByte();
+                    data.Add(buffer[0]);
+                    data.Add(marker);
+                    if (marker == QTls)
+                        break;
+                    continue;
+                }
+                data.Add(buffer[0]);
+            }
+            //headerData.Enqueue(oryginalReader.ReadByte());
+            // headerData.Enqueue(oryginalReader.ReadByte());
+            // headerData.Enqueue(oryginalReader.ReadByte());
+            data.Add(oryginalReader.ReadByte());
+            return data;
+        }
+
         private void ReadScanSegment(BinaryReader reader, JpegModel jpegModel) {
             int segmentLength = BitConverter.ToUInt16(reader.ReadBytes(2).Reverse().ToArray(), 0);
             jpegModel.imageSegments.Add(reader.ReadBytes(segmentLength - 2));
@@ -170,6 +210,7 @@ namespace jpgReader
             }
 
         }
+
 
         private Queue<byte> GetSampleData(BinaryReader oryginalReader) {
             Queue<byte> sampleData = new Queue<byte>();
