@@ -8,12 +8,13 @@ namespace jpgReader
 {
     class CryptoNetService
     {
-        const int keyBitsCount = 128;
+        const int keyBitsCount = 2048;
+        const int blockSize = 214;
         private RSAParameters privKey;
         private RSAParameters pubKey;
 
         internal void Rsa(JpegModel jpegModel) {
-            RSA csp = new RSACryptoServiceProvider(768);
+            RSA csp = new RSACryptoServiceProvider(2048);
             privKey = csp.ExportParameters(true);
             pubKey = csp.ExportParameters(false);
 
@@ -29,23 +30,41 @@ namespace jpgReader
             BinaryReader oryginalReader = new BinaryReader(oryginalImageStream);
             JpegReader jpgReader = new JpegReader();
             JpegBuilder builder = new JpegBuilder();
-            //jpgReader.FillipherData(oryginalReader, jpegModel);
-            jpgReader.ReadToQt(oryginalReader, jpegModel);
-            int dataCount = jpegModel.sampleData.Count;
-            byte[] oryginalData = jpegModel.quantizationTables[0];
-           // byte[] data = jpegModel.quantizationTables[0];
-           // for (int i = 0; i < 50; ++i)
-           //     oryginalData[i] = data[i];
+
+            jpgReader.ReadToCurrentSamples(oryginalReader, jpegModel);
+            EncryptImage(jpegModel);
+
+            return builder.BuildCryptedImage(jpegModel, "Crypted");
+
+        }
+
+        private void EncryptImage(JpegModel jpegModel) {
             var csp = new RSACryptoServiceProvider();
             csp.ImportParameters(pubKey);
-            
+            byte[] dataToEncrypt;
+            for (int i = 0; i < jpegModel.currentSamples.Count; ++i) {
+                jpegModel.cryptedSamples.Add(new List<byte>());
+                List<byte> samples = new List<byte>(jpegModel.currentSamples[i]);
+                if (i % 2 == 0)
+                    do {
+                        int currentBlockSize = samples.Count > blockSize ? blockSize : samples.Count;
+                        dataToEncrypt = samples.GetRange(0, currentBlockSize).ToArray();
+                        samples.RemoveRange(0, currentBlockSize);
+                        jpegModel.cryptedSamples[i].AddRange(csp.Encrypt(dataToEncrypt, false));
+                    } while (samples.Count > 0);
+                else
+                    jpegModel.cryptedSamples[i] = samples;
+            }
+            RemoveEOIMarkers(jpegModel);
+        }
 
-            jpegModel.cryptedQT1 = csp.Encrypt(jpegModel.QT1, false);
-            //int iMax = 27;
-           // for(int i =0; i < iMax; ++i)
-           //     jpegModel.sampleData.Enqueue(cryptedData[i]);
-            builder.BuildQTJpeg(jpegModel, "dupaczaba");
-            return "";
+        private void RemoveEOIMarkers(JpegModel jpegModel) {
+            for (int i = 0; i < jpegModel.cryptedSamples.Count; i+=2) {
+                for(int j = 0; j < jpegModel.cryptedSamples[i].Count-1; ++j) {
+                    if (jpegModel.cryptedSamples[i][j] == 0xff)
+                        jpegModel.cryptedSamples[i][j] = 0x01; 
+                }
+            }
         }
 
         public string GetPublicKey() {
@@ -62,7 +81,6 @@ namespace jpgReader
             var xs = new System.Xml.Serialization.XmlSerializer(typeof(RSAParameters));
             return (RSAParameters)xs.Deserialize(sr);
         }
-
 
     }
 }

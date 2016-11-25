@@ -23,6 +23,8 @@ namespace jpgReader
         int SOSls = 0xda;
         int markerMS = 0xff;
         int QTls = 0xdb;
+        int DHTlf = 0xc4;
+
 
         public JpegModel ReadImage(Stream imageStream) {
             JpegModel jpegModel = new JpegModel();
@@ -148,18 +150,94 @@ namespace jpgReader
                 throw new Exception(markerName + " marker not found.");
         }
 
+
         public void FillipherData(BinaryReader oryginalReader, JpegModel jpegModel) {
             jpegModel.headerData = GetHeaderData(oryginalReader);
             jpegModel.sampleData = GetSampleData(oryginalReader);
         }
 
+        public void ReadToCurrentSamples(BinaryReader reader, JpegModel jpegModel) {
+            jpegModel.beforeCurrentSamples = ReadToSOS(reader);
+            jpegModel.beforeCurrentSamples.AddRange(reader.ReadBytes(12));
+            jpegModel.currentSamples = ReadToEndWithMultipleSOS(reader);
+        }
+
+        // only even numbers contains current samples
+        private List<List<byte>> ReadToEndWithMultipleSOS(BinaryReader reader) {
+            List<List<byte>> data = new List<List<byte>>();
+            data.Add(new List<byte>());
+            int listCounter = 0;
+            byte[] buffer;
+            byte[] tmp;
+            byte marker;
+            while ((buffer = reader.ReadBytes(1)).Length > 0) {
+                if (buffer[0] == markerMS) {
+                    marker = reader.ReadByte();
+                    if (marker == SOSls) {
+                        data.Add(new List<byte>());
+                        ++listCounter;
+                        data[listCounter].Add(buffer[0]);
+                        data[listCounter].Add(marker);
+                        data[listCounter].AddRange(reader.ReadBytes(12));
+                        data.Add(new List<byte>());
+                        ++listCounter;
+                        continue;
+                    }
+                    if (marker == EOIls) {
+                        if ((tmp = reader.ReadBytes(1)).Length == 0) {
+                            break;
+                        }
+                        else {
+                            data.Add(new List<byte>());
+                            ++listCounter;
+                            data[listCounter].Add(buffer[0]);
+                            data[listCounter].Add(marker);
+                            data[listCounter].Add(tmp[0]);
+                            data[listCounter].AddRange(ReadToSOS(reader));
+                            data[listCounter].AddRange(reader.ReadBytes(12));
+                            data.Add(new List<byte>());
+                            ++listCounter;
+                            continue;
+                        }
+                    }
+                    else {
+                        data[listCounter].Add(buffer[0]);
+                        data[listCounter].Add(marker);
+                        continue;
+                    }
+                        
+                }
+                data[listCounter].Add(buffer[0]);
+            }
+            return data;
+        }
+
+        private List<byte> ReadToSOS(BinaryReader reader) {
+            List<byte> data = new List<byte>();
+            byte[] buffer;
+            byte marker;
+            while ((buffer = reader.ReadBytes(1)).Length > 0) {
+                if (buffer[0] == markerMS) {
+                    marker = reader.ReadByte();
+                    data.Add(buffer[0]);
+                    data.Add(marker);
+                    if (marker == SOSls)
+                        break;
+                    continue;
+                }
+                data.Add(buffer[0]);
+            }
+            return data;
+        }
+
         public void ReadToQt(BinaryReader oryginalReader, JpegModel jpegModel) {
             jpegModel.beforeQT1 = GetBeforeQt(oryginalReader);
             jpegModel.QT1 = oryginalReader.ReadBytes(64);
-            jpegModel.afterQT1 = GetAfterQtMarkAndLenghth(oryginalReader);
+            jpegModel.afterQT1 = ReadToEnd(oryginalReader);
         }
 
-        private List<byte> GetAfterQtMarkAndLenghth(BinaryReader oryginalReader) {
+
+        private List<byte> ReadToEnd(BinaryReader oryginalReader) {
             List<byte> data = new List<byte>();
             byte[] buffer;
             while ((buffer = oryginalReader.ReadBytes(1)).Length > 0)
@@ -188,6 +266,8 @@ namespace jpgReader
             //headerData.Enqueue(oryginalReader.ReadByte());
             // headerData.Enqueue(oryginalReader.ReadByte());
             // headerData.Enqueue(oryginalReader.ReadByte());
+            data.Add(oryginalReader.ReadByte());
+            data.Add(oryginalReader.ReadByte());
             data.Add(oryginalReader.ReadByte());
             return data;
         }

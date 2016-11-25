@@ -61,6 +61,10 @@ namespace jpgReader
         public List<byte> afterQT1;
         public byte[] QT1;
         public byte[] cryptedQT1;
+        public List<byte> beforeDHT;
+        public List<byte> beforeCurrentSamples;
+        public List<List<byte>> currentSamples;
+        public List<List<byte>> cryptedSamples;
         public JpegModel() {
             app0 = new APP0();
             sof1 = new SOF1();
@@ -73,6 +77,8 @@ namespace jpgReader
             sampleData = new Queue<byte>();
             beforeQT1 = new List<byte>();
             afterQT1 = new List<byte>();
+            cryptedSamples = new List<List<byte>>();
+            currentSamples = new List<List<byte>>();
         }
   
     }

@@ -41,13 +41,12 @@ namespace jpgReader
                 try {
                     if ((myStream = openFileDialog1.OpenFile()) != null) {
                         using (myStream) {
-                            // Insert code to read the stream here.
                             jpegModel = jpegReader.ReadImage(myStream);
                             jpegModel.file = (myStream as FileStream).Name;
-                           // FFTService.FFTImageDataModel fftImageDataModel = FFTService.FFT(jpegModel);
+                            FFTService.FFTImageDataModel fftImageDataModel = FFTService.FFT(jpegModel);
                             SetImageDetails(jpegModel);
                             ClearGraph();
-                           // DrawGraph(fftImageDataModel);
+                            DrawGraph(fftImageDataModel);
                             cryptoService.Rsa(jpegModel);
                         }
                     }
