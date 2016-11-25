@@ -18,7 +18,9 @@ namespace jpgReader
         int DHT = 0xffc4;
         int SOS = 0xffda;
         int EOI = 0xffd9;
+        int EOIls = 0xd9;
         int Comment = 0xfffe;
+        int markerMS = 0xff;
 
         public JpegModel ReadImage(Stream imageStream) {
             JpegModel jpegModel = new JpegModel();
@@ -38,8 +40,10 @@ namespace jpgReader
                         ReadSof1Segment(reader, jpegModel);
                     else if (marker == DHT)
                         ReadDhtSegment(reader, jpegModel);
-                    else if (marker == SOS)
+                    else if (marker == SOS) {
                         ReadScanSegment(reader, jpegModel);
+                        return jpegModel;
+                    }
                     else if (marker == Comment)
                         ReadComment(reader, jpegModel);
                     else if (marker == EOI)
@@ -63,7 +67,19 @@ namespace jpgReader
         private void ReadScanSegment(BinaryReader reader, JpegModel jpegModel) {
             int segmentLength = BitConverter.ToUInt16(reader.ReadBytes(2).Reverse().ToArray(), 0);
             jpegModel.imageSegments.Add(reader.ReadBytes(segmentLength - 2));
-
+            byte[] buffer;
+            byte marker;
+            while((buffer = reader.ReadBytes(1)).Length > 0) {
+                if(buffer[0] == markerMS) {
+                    marker = reader.ReadByte();
+                    if (marker == EOIls)
+                        break;
+                    jpegModel.scannedData.Enqueue(buffer[0]);
+                    jpegModel.scannedData.Enqueue(marker);
+                    continue;
+                }
+                jpegModel.scannedData.Enqueue(buffer[0]);
+            }
 
         }
 
@@ -131,7 +147,10 @@ namespace jpgReader
 
         private void ReadIdentifier(BinaryReader reader, JpegModel jpegModel) {
             byte[] byteArray = reader.ReadBytes(4);
-            jpegModel.app0.identifier = BitConverter.ToString(byteArray);
+            string id = "";
+            foreach (byte b in byteArray)
+                id += Convert.ToChar(b);
+            jpegModel.app0.identifier = id;
             int nullByte = reader.ReadBytes(1)[0];
             if (nullByte != 0)
                 throw new Exception("Missing null byte after APP0 identifier");

@@ -44,6 +44,7 @@ namespace jpgReader
         public byte[] L; // 
         public byte[] V;
     }
+
     class JpegModel
     {
         public APP0 app0;
@@ -52,6 +53,8 @@ namespace jpgReader
         public List<byte[]> quantizationTables;
         public List<byte[]> comments;
         public List<byte[]> imageSegments;
+        public Queue<byte> scannedData;
+        public string file;
         public JpegModel() {
             app0 = new APP0();
             sof1 = new SOF1();
@@ -59,8 +62,8 @@ namespace jpgReader
             quantizationTables = new List<byte[]>();
             imageSegments = new List<byte[]>();
             comments = new List<byte[]>();
+            scannedData = new Queue<byte>();
         }
-
-
+  
     }
 }
