@@ -38,7 +38,7 @@ namespace jpgReader
             for (int y = 0; y < bitmap.Height; ++y)
                 for (int x = 0; x < bitmap.Width; ++x)
                     colorList.Add(bitmap.GetPixel(x, y));
-
+            
             return DoFFTOverImage(colorList);
         }
 

@@ -41,18 +41,23 @@ namespace jpgReader
                 try {
                     if ((myStream = openFileDialog1.OpenFile()) != null) {
                         using (myStream) {
+                            Cursor = Cursors.WaitCursor;
                             jpegModel = jpegReader.ReadImage(myStream);
                             jpegModel.file = (myStream as FileStream).Name;
+                            myStream.Close();
                             FFTService.FFTImageDataModel fftImageDataModel = FFTService.FFT(jpegModel);
                             SetImageDetails(jpegModel);
                             ClearGraph();
                             DrawGraph(fftImageDataModel);
                             cryptoService.Rsa(jpegModel);
+                            Cursor = Cursors.Arrow;
                         }
                     }
                 }
                 catch (Exception ex) {
                     MessageBox.Show("Error: Could not read file from disk. Original error: " + ex.Message);
+                    Cursor = Cursors.Arrow;
+                    myStream.Close();
                 }
             }
         }

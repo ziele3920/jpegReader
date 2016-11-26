@@ -70,10 +70,19 @@
     <Compile Include="JpegBuilder.cs" />
     <Compile Include="JpegReader.cs" />
     <Compile Include="jpgModel.cs" />
+    <Compile Include="Processing.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Processing.Designer.cs">
+      <DependentUpon>Processing.cs</DependentUpon>
+    </Compile>
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <EmbeddedResource Include="Form1.resx">
       <DependentUpon>Form1.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Processing.resx">
+      <DependentUpon>Processing.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Properties\Resources.resx">
       <Generator>ResXFileCodeGenerator</Generator>
