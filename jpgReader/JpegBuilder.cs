@@ -71,6 +71,23 @@ namespace jpgReader
             return path;
         }
 
+        internal string BuildDecryptedImage(JpegModel imageModel, string fileAppend) {
+            string path = imageModel.file;
+            path = path.Replace(".jpg", fileAppend + ".jpg");
+            if (File.Exists(path))
+                File.Delete(path);
+            FileStream creatingFile = File.Create(path);
+            BinaryWriter writter = new BinaryWriter(creatingFile);
+            writter.Write(imageModel.beforeCurrentSamples.ToArray());
+            foreach (List<byte> list in imageModel.currentSamples)
+                writter.Write(list.ToArray());
+            writter.Write((byte)0xff);
+            writter.Write((byte)0xd9);
+            writter.Close();
+            creatingFile.Close();
+            return path;
+        }
+
         private void WriteLastPartOfQt(JpegModel imageModel, BinaryWriter writter) {
             byte[] data = new byte[96 - 64];
             for (int i = 0; i < (96 - 64); ++i)

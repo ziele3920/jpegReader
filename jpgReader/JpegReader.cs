@@ -63,6 +63,8 @@ namespace jpgReader
             return jpegModel;
         }
 
+    
+
         private void ReadComment(BinaryReader reader, JpegModel jpegModel) {
             int segmentLength = BitConverter.ToUInt16(reader.ReadBytes(2).Reverse().ToArray(), 0);
             jpegModel.comments.Add(reader.ReadBytes(segmentLength - 2));
@@ -160,6 +162,12 @@ namespace jpgReader
             jpegModel.beforeCurrentSamples = ReadToSOS(reader);
             jpegModel.beforeCurrentSamples.AddRange(reader.ReadBytes(12));
             jpegModel.currentSamples = ReadToEndWithMultipleSOS(reader);
+        }
+
+        internal void ReadToEncryptedSamples(BinaryReader cipherReader, JpegModel jpegModel) {
+            jpegModel.beforeCurrentSamples = ReadToSOS(cipherReader);
+            jpegModel.beforeCurrentSamples.AddRange(cipherReader.ReadBytes(12));
+            jpegModel.cryptedSamples = ReadToEndWithMultipleSOS(cipherReader);
         }
 
         // only even numbers contains current samples

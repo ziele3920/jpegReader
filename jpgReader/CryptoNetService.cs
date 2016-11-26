@@ -10,6 +10,7 @@ namespace jpgReader
     {
         const int keyBitsCount = 2048;
         const int blockSize = 214;
+        const int decrBlockSize = 256;
         private RSAParameters privKey;
         private RSAParameters pubKey;
 
@@ -18,14 +19,25 @@ namespace jpgReader
             privKey = csp.ExportParameters(true);
             pubKey = csp.ExportParameters(false);
 
-            string file = MakeCipherFile(jpegModel, csp);
+            string cipherFile = MakeCipherFile(jpegModel, csp, "Encrypted");
+            string decriptedFile = DecryptFile(cipherFile, csp, "Decrypted");
         }
 
-        private void DecryptFile(string file) {
-            throw new NotImplementedException();
+        private string DecryptFile(string encryptedFile, RSA netRsa, string fileAppend) {
+            FileStream cipherStream = File.OpenRead(encryptedFile);
+            BinaryReader cipherReader = new BinaryReader(cipherStream);
+            JpegReader jpegReader = new JpegReader();
+            JpegBuilder jpegBuilder = new JpegBuilder();
+            JpegModel jpegModel = new JpegModel();
+
+            jpegReader.ReadToEncryptedSamples(cipherReader, jpegModel);
+            jpegModel.file = encryptedFile;
+            DecyptImage(jpegModel);
+            return jpegBuilder.BuildDecryptedImage(jpegModel, fileAppend);
+
         }
 
-        private string MakeCipherFile(JpegModel jpegModel, RSA netRsa) {
+        private string MakeCipherFile(JpegModel jpegModel, RSA netRsa, string fileAppend) {
             FileStream oryginalImageStream = File.OpenRead(jpegModel.file);
             BinaryReader oryginalReader = new BinaryReader(oryginalImageStream);
             JpegReader jpgReader = new JpegReader();
@@ -34,8 +46,28 @@ namespace jpgReader
             jpgReader.ReadToCurrentSamples(oryginalReader, jpegModel);
             EncryptImage(jpegModel);
 
-            return builder.BuildCryptedImage(jpegModel, "Crypted");
+            return builder.BuildCryptedImage(jpegModel, fileAppend);
 
+        }
+
+        private void DecyptImage(JpegModel jpegModel) {
+            var csp = new RSACryptoServiceProvider();
+            csp.ImportParameters(privKey);
+
+            byte[] dataToDecrypt;
+            for (int i = 0; i < jpegModel.cryptedSamples.Count; ++i) {
+                jpegModel.currentSamples.Add(new List<byte>());
+                List<byte> samples = new List<byte>(jpegModel.cryptedSamples[i]);
+                if (i % 2 == 0)
+                    do {
+                        int currentBlockSize = samples.Count > decrBlockSize ? decrBlockSize : samples.Count;
+                        dataToDecrypt = samples.GetRange(0, currentBlockSize).ToArray();
+                        samples.RemoveRange(0, currentBlockSize);
+                        jpegModel.currentSamples[i].AddRange(csp.Decrypt(dataToDecrypt, false));
+                    } while (samples.Count > 0);
+                else
+                    jpegModel.currentSamples[i] = samples;
+            }
         }
 
         private void EncryptImage(JpegModel jpegModel) {
@@ -50,12 +82,13 @@ namespace jpgReader
                         int currentBlockSize = samples.Count > blockSize ? blockSize : samples.Count;
                         dataToEncrypt = samples.GetRange(0, currentBlockSize).ToArray();
                         samples.RemoveRange(0, currentBlockSize);
-                        jpegModel.cryptedSamples[i].AddRange(csp.Encrypt(dataToEncrypt, false));
+                        byte[] cryptedData = csp.Encrypt(dataToEncrypt, false);
+                        jpegModel.cryptedSamples[i].AddRange(cryptedData);
                     } while (samples.Count > 0);
                 else
                     jpegModel.cryptedSamples[i] = samples;
             }
-            RemoveEOIMarkers(jpegModel);
+            //RemoveEOIMarkers(jpegModel);
         }
 
         private void RemoveEOIMarkers(JpegModel jpegModel) {
